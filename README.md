@@ -1,19 +1,10 @@
 # Pomodoro — 专注番茄钟
 
-单文件番茄钟 Web 应用，打开即用，无需安装或构建。界面采用深色暖色调，带环形进度、动态背景与本地数据统计。
+## Project Overview
 
-## 快速开始
+单文件番茄钟 Web 应用，打开即用，无需安装或构建。界面采用深色暖色调，带环形进度、动态背景与本地数据统计。所有 HTML、CSS、JavaScript 内联于 `index.html`，可直接部署到 Vercel 等静态托管平台。
 
-```bash
-# 直接用浏览器打开
-open pomodoro-timer.html
-```
-
-或将 `pomodoro-timer.html` 拖入任意现代浏览器（Chrome、Safari、Firefox、Edge 等）。
-
-> 需要联网加载 [Inter](https://fonts.google.com/specimen/Inter) 字体；计时与统计功能离线可用。
-
-## 功能概览
+## Features
 
 ### 计时模式
 
@@ -32,18 +23,18 @@ open pomodoro-timer.html
 - **动态背景**：专注时背景随进度加深；休息模式切换为绿色 / 蓝色主题
 - **浮动粒子**：营造专注氛围的轻量动画
 
-### 设置（右侧齿轮图标）
+### 设置
 
-| 选项           | 范围    | 默认值 |
-|----------------|---------|--------|
-| 专注时长       | 1–90 分钟  | 25  |
-| 短休息         | 1–30 分钟  | 5   |
-| 长休息         | 1–60 分钟  | 15  |
-| 番茄后长休息   | 2–10 个    | 4   |
+| 选项           | 范围       | 默认值 |
+|----------------|------------|--------|
+| 专注时长       | 1–90 分钟  | 25     |
+| 短休息         | 1–30 分钟  | 5      |
+| 长休息         | 1–60 分钟  | 15     |
+| 番茄后长休息   | 2–10 个    | 4      |
 
-修改设置后，若计时未运行，当前模式时长会立即更新。面板底部可**清除所有数据**（需确认）。
+修改设置后，若计时未运行，当前模式时长会立即更新。面板底部可清除所有数据（需确认）。
 
-### 数据统计（左侧图表图标）
+### 数据统计
 
 - **今日 / 本周 / 累计番茄**：完成次数统计
 - **连续天数**：有完成记录的天数 streak
@@ -54,7 +45,33 @@ open pomodoro-timer.html
 
 数据保存在浏览器 `localStorage`（键名 `pomodoro-state`），换设备或清缓存会丢失。
 
-## 快捷键
+## Installation
+
+无需安装依赖。克隆仓库后直接用浏览器打开即可：
+
+```bash
+git clone git@github.com:NOSOLUTIONLOVE/08_Pomodoro.git
+cd 08_Pomodoro
+open index.html
+```
+
+> 需要联网加载 [Inter](https://fonts.google.com/specimen/Inter) 字体；计时与统计功能离线可用。
+
+## Usage
+
+### 本地使用
+
+将 `index.html` 拖入任意现代浏览器（Chrome、Safari、Firefox、Edge 等），或通过本地 HTTP 服务访问。
+
+### 部署到 Vercel
+
+1. 在 [Vercel](https://vercel.com) 导入 GitHub 仓库 `NOSOLUTIONLOVE/08_Pomodoro`
+2. Framework Preset 选择 **Other**，Build / Install Command 留空
+3. 部署完成后访问分配的域名即可
+
+入口文件为 `index.html`，无需额外构建步骤。
+
+### 快捷键
 
 | 按键              | 作用           |
 |-------------------|----------------|
@@ -64,21 +81,6 @@ open pomodoro-timer.html
 
 在输入框内时快捷键不生效。
 
-## 技术说明
+## License
 
-- **单文件架构**：HTML + CSS + JavaScript 全部内联于 `pomodoro-timer.html`
-- **无外部依赖**：除 Google Fonts 外不依赖任何框架或库
-- **持久化**：`localStorage` 保存设置、历史记录、今日曲线与番茄计数；跨日自动重置当日数据并归档至历史
-- **响应式**：480px 以下适配移动端（缩小计时环、面板全宽）
-
-## 项目结构
-
-```
-08_Pomodoro/
-├── pomodoro-timer.html   # 完整应用（唯一源文件）
-└── README.md
-```
-
-## 许可
-
-个人使用项目，可按需自由修改与分发。
+见仓库根目录 [LICENSE](LICENSE) 文件。
