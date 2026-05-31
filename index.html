@@ -1279,7 +1279,73 @@
 
     let stepperHold = null;
     let timerTextTransition = null;
+    let timerTransitionGeneration = 0;
     let currentTimerText = '';
+    let lastStableDisplayedText = '';
+
+    const DISPLAY_SOURCE = {
+      TICK: 'tick',
+      INIT: 'init',
+      RESET: 'reset',
+      MODE_CHANGE: 'modeChange',
+      SETTINGS_COMMIT: 'settingsCommit'
+    };
+
+    const TIMER_MORPH_SWAP_MS = 170;
+    const TIMER_MORPH_DONE_MS = 620;
+    const TIMER_PARTICLE_FIELD_REMOVE_MS = 680;
+    const TIMER_SIMPLE_BLUR_SWAP_MS = 90;
+    const TIMER_SIMPLE_BLUR_DONE_MS = 210;
+
+    function getDisplayedTimerText() {
+      return currentTimerText || $display.textContent.trim();
+    }
+
+    function diffTimerCharIndices(fromText, toText) {
+      return Array.from(toText).reduce((indices, char, index) => {
+        if (char !== fromText[index]) indices.push(index);
+        return indices;
+      }, []);
+    }
+
+    function clearTimerDisplayTransitionClasses() {
+      $display.classList.remove('morphing');
+      $display.classList.remove('simple-blur');
+      $display.querySelectorAll('.timer-char.morphing').forEach(char => char.classList.remove('morphing'));
+    }
+
+    function cancelTimerDisplayTransition(preserveStableBaseline) {
+      if (!timerTextTransition) return;
+      clearTimeout(timerTextTransition.swap);
+      clearTimeout(timerTextTransition.done);
+      if (timerTextTransition.fieldRemovals) {
+        timerTextTransition.fieldRemovals.forEach(removalId => clearTimeout(removalId));
+      }
+      timerTextTransition = null;
+      clearDigitDissolveFields();
+      clearTimerDisplayTransitionClasses();
+      if (!preserveStableBaseline) {
+        commitStableTimerText(getDisplayedTimerText());
+      }
+    }
+
+    function getMorphBaselineText(visibleText) {
+      const stable = lastStableDisplayedText || visibleText;
+      if (visibleText !== stable) {
+        return visibleText;
+      }
+      return stable;
+    }
+
+    function commitStableTimerText(text) {
+      currentTimerText = text;
+      lastStableDisplayedText = text;
+    }
+
+    function renderTimerCharsInstant(text) {
+      renderTimerChars(text);
+      commitStableTimerText(text);
+    }
 
     function createParticles() {
       const container = document.getElementById('particles');
@@ -1330,16 +1396,14 @@
       document.querySelectorAll('.digit-dissolve-field').forEach(field => field.remove());
     }
 
-    function createDigitDissolveParticles(charEl, index) {
-      const containerRect = $display.parentElement.getBoundingClientRect();
-      const charRect = charEl.getBoundingClientRect();
+    function createDigitDissolveFieldAt(anchor) {
       const particleCount = Math.floor(randomBetween(28, 37));
       const field = document.createElement('div');
       field.className = 'digit-dissolve-field';
-      field.dataset.charIndex = index;
-      field.style.left = (charRect.left + charRect.width / 2 - containerRect.left) + 'px';
-      field.style.top = (charRect.top + charRect.height / 2 - containerRect.top) + 'px';
-      field.style.color = TIMER_PARTICLE_COLORS[state.mode] || TIMER_PARTICLE_COLORS.focus;
+      field.dataset.charIndex = anchor.index;
+      field.style.left = anchor.centerX + 'px';
+      field.style.top = anchor.centerY + 'px';
+      field.style.color = anchor.color;
 
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('span');
@@ -1362,59 +1426,58 @@
       }
 
       $display.parentElement.appendChild(field);
-      setTimeout(() => field.remove(), 680);
+      return setTimeout(() => field.remove(), TIMER_PARTICLE_FIELD_REMOVE_MS);
     }
 
-    function setTimerText(nextText, animate = false) {
-      const oldText = currentTimerText || $display.textContent;
-      if (oldText === nextText && !animate) return;
-
-      if (timerTextTransition) {
-        clearTimeout(timerTextTransition.swap);
-        clearTimeout(timerTextTransition.done);
-      }
-
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!animate || reduceMotion) {
-        renderTimerChars(nextText);
-        $display.classList.remove('morphing');
-        $display.classList.remove('simple-blur');
-        clearDigitDissolveFields();
-        timerTextTransition = null;
-        return;
-      }
-
-      if (state.settings.particles === false) {
-        clearDigitDissolveFields();
-        $display.classList.remove('morphing');
-        $display.querySelectorAll('.timer-char.morphing').forEach(char => char.classList.remove('morphing'));
-        $display.classList.remove('simple-blur');
-        void $display.offsetWidth;
-        $display.classList.add('simple-blur');
-        timerTextTransition = {
-          swap: setTimeout(() => {
-            renderTimerChars(nextText);
-          }, 90),
-          done: setTimeout(() => {
-            $display.classList.remove('simple-blur');
-            timerTextTransition = null;
-          }, 210)
+    function measureDigitMorphAnchors(changedIndices) {
+      const containerRect = $display.parentElement.getBoundingClientRect();
+      const color = TIMER_PARTICLE_COLORS[state.mode] || TIMER_PARTICLE_COLORS.focus;
+      return changedIndices.map(index => {
+        const charEl = $display.querySelector('[data-char-index="' + index + '"]');
+        if (!charEl) return null;
+        const charRect = charEl.getBoundingClientRect();
+        return {
+          index,
+          centerX: charRect.left + charRect.width / 2 - containerRect.left,
+          centerY: charRect.top + charRect.height / 2 - containerRect.top,
+          color
         };
-        return;
-      }
+      }).filter(Boolean);
+    }
 
-      if (!$display.querySelector('.timer-char')) {
-        renderTimerChars(oldText);
-      }
+    function scheduleSimpleBlurTransition(toText) {
+      cancelTimerDisplayTransition(false);
+      const generation = ++timerTransitionGeneration;
+      void $display.offsetWidth;
+      $display.classList.add('simple-blur');
+      timerTextTransition = {
+        generation,
+        swap: setTimeout(() => {
+          if (!timerTextTransition || timerTextTransition.generation !== generation) return;
+          renderTimerChars(toText);
+        }, TIMER_SIMPLE_BLUR_SWAP_MS),
+        done: setTimeout(() => {
+          if (!timerTextTransition || timerTextTransition.generation !== generation) return;
+          $display.classList.remove('simple-blur');
+          commitStableTimerText(toText);
+          timerTextTransition = null;
+        }, TIMER_SIMPLE_BLUR_DONE_MS),
+        fieldRemovals: []
+      };
+    }
 
-      const changedIndices = Array.from(nextText).reduce((indices, char, index) => {
-        if (char !== oldText[index]) indices.push(index);
-        return indices;
-      }, []);
+    function scheduleTimerDisplayTransition(fromText, toText) {
+      cancelTimerDisplayTransition(false);
 
+      const changedIndices = diffTimerCharIndices(fromText, toText);
       if (changedIndices.length === 0) {
-        renderTimerChars(nextText);
+        renderTimerCharsInstant(toText);
         return;
+      }
+
+      const visibleText = getDisplayedTimerText();
+      if (visibleText !== fromText || !$display.querySelector('.timer-char')) {
+        renderTimerChars(fromText);
       }
 
       clearDigitDissolveFields();
@@ -1423,28 +1486,88 @@
         const charEl = $display.querySelector('[data-char-index="' + index + '"]');
         if (!charEl) return;
         charEl.classList.add('morphing');
-        if (state.settings.particles) {
-          createDigitDissolveParticles(charEl, index);
-        }
       });
 
+      const fieldRemovals = measureDigitMorphAnchors(changedIndices).map(anchor => createDigitDissolveFieldAt(anchor));
+      const generation = ++timerTransitionGeneration;
+
       timerTextTransition = {
+        generation,
         swap: setTimeout(() => {
-          renderTimerChars(nextText, changedIndices);
-        }, 170),
+          if (!timerTextTransition || timerTextTransition.generation !== generation) return;
+          renderTimerChars(toText, changedIndices);
+        }, TIMER_MORPH_SWAP_MS),
         done: setTimeout(() => {
-          $display.classList.remove('morphing');
-          $display.querySelectorAll('.timer-char.morphing').forEach(char => char.classList.remove('morphing'));
+          if (!timerTextTransition || timerTextTransition.generation !== generation) return;
+          clearTimerDisplayTransitionClasses();
           clearDigitDissolveFields();
+          commitStableTimerText(toText);
           timerTextTransition = null;
-        }, 620)
+        }, TIMER_MORPH_DONE_MS),
+        fieldRemovals
       };
     }
 
-    function updateDisplay(animateTimer = false) {
-      const m = Math.floor(state.timeLeft / 60);
-      const s = state.timeLeft % 60;
-      setTimerText(formatTime(state.timeLeft), animateTimer);
+    function playTimerTextTransition(fromText, toText) {
+      if (fromText === toText) {
+        renderTimerCharsInstant(toText);
+        return;
+      }
+
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduceMotion) {
+        cancelTimerDisplayTransition(false);
+        renderTimerCharsInstant(toText);
+        return;
+      }
+
+      if (state.settings.particles === false) {
+        scheduleSimpleBlurTransition(toText);
+        return;
+      }
+
+      scheduleTimerDisplayTransition(fromText, toText);
+    }
+
+    function refreshTimerText(options) {
+      const source = options.source || 'tick';
+      const coalesceMorph = options.coalesceMorph === true || (stepperHold && stepperHold.coalesce);
+      const nextText = options.nextText;
+      const visibleText = getDisplayedTimerText();
+
+      if (coalesceMorph) {
+        if (visibleText !== nextText) {
+          cancelTimerDisplayTransition(true);
+          renderTimerChars(nextText);
+        }
+        return;
+      }
+
+      if (source === DISPLAY_SOURCE.TICK || source === DISPLAY_SOURCE.INIT) {
+        if (visibleText === nextText) return;
+        cancelTimerDisplayTransition(false);
+        renderTimerCharsInstant(nextText);
+        return;
+      }
+
+      if (visibleText === nextText) {
+        return;
+      }
+
+      playTimerTextTransition(getMorphBaselineText(visibleText), nextText);
+    }
+
+    function flushCoalescedTimerMorph() {
+      const nextText = formatTime(state.timeLeft);
+      const visibleText = getDisplayedTimerText();
+      playTimerTextTransition(getMorphBaselineText(visibleText), nextText);
+    }
+
+    function updateDisplay(options = {}) {
+      const source = options.source || 'tick';
+      const coalesceMorph = options.coalesceMorph === true || (stepperHold && stepperHold.coalesce);
+      const nextText = formatTime(state.timeLeft);
+      refreshTimerText({ source, coalesceMorph, nextText });
       const progress = state.timeLeft / state.totalTime;
       const offset = CIRCUMFERENCE * (1 - progress);
       $ringFill.style.strokeDashoffset = offset;
@@ -1491,7 +1614,7 @@
       setMode(mode);
     }
 
-    function setMode(mode) {
+    function setMode(mode, options = {}) {
       state.mode = mode;
       clearInterval(interval);
       interval = null;
@@ -1507,7 +1630,9 @@
       const indicatorLabels = { focus: '专注中', short: '短休息', long: '长休息' };
       $focusIndicator.textContent = indicatorLabels[mode];
       $focusIndicator.className = 'focus-indicator' + (mode === 'short' ? ' break' : mode === 'long' ? ' long-break' : '');
-      updateDisplay(true);
+      updateDisplay({
+        source: options.displaySource || DISPLAY_SOURCE.MODE_CHANGE
+      });
       saveState();
     }
 
@@ -1547,7 +1672,7 @@
 
       state.settings[config.key] = next;
       input.value = next;
-      setMode(SETTING_TO_MODE[id]);
+      setMode(SETTING_TO_MODE[id], { displaySource: DISPLAY_SOURCE.SETTINGS_COMMIT });
       updatePomodoroDots();
     }
 
@@ -1587,11 +1712,16 @@
     function stopStepperHold() {
       if (!stepperHold) return;
       clearTimeout(stepperHold.timer);
+      const wasCoalescing = stepperHold.coalesce;
       stepperHold = null;
+      if (wasCoalescing) {
+        flushCoalescedTimerMorph();
+      }
     }
 
     function startStepperHold(button, id, direction, pointerId) {
       stopStepperHold();
+      stepperHold = { timer: null, coalesce: true };
       button.dataset.pointerStepped = 'true';
       stepSetting(id, direction);
 
@@ -1604,7 +1734,7 @@
         stepperHold.timer = setTimeout(repeat, delay);
       };
 
-      stepperHold = { timer: setTimeout(repeat, 360) };
+      stepperHold.timer = setTimeout(repeat, 360);
       if (button.setPointerCapture && pointerId != null) {
         button.setPointerCapture(pointerId);
       }
@@ -1689,7 +1819,7 @@
         $focusIndicator.classList.add('active');
         interval = setInterval(() => {
           state.timeLeft--;
-          updateDisplay();
+          updateDisplay({ source: DISPLAY_SOURCE.TICK });
           if (state.timeLeft <= 0) {
             clearInterval(interval);
             interval = null;
@@ -1707,7 +1837,7 @@
       $btnStart.textContent = '开始';
       $btnReset.style.display = 'none';
       $focusIndicator.classList.remove('active');
-      updateDisplay(true);
+      updateDisplay({ source: DISPLAY_SOURCE.RESET });
     }
 
     function onTimerComplete() {
@@ -1945,7 +2075,7 @@
     state.timeLeft = state.settings.focus * 60;
     state.totalTime = state.settings.focus * 60;
     applyModeTheme(state.mode);
-    updateDisplay();
+    updateDisplay({ source: DISPLAY_SOURCE.INIT });
     updatePomodoroDots();
     updateModeTabs(state.mode);
     window.addEventListener('resize', positionModeIndicator);
