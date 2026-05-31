@@ -20,6 +20,12 @@
       --radius: 24px;
       --radius-sm: 12px;
       --font-display: 'Inter', -apple-system, system-ui, sans-serif;
+      --mode-accent: var(--coral);
+      --mode-accent-light: var(--coral-light);
+      --mode-accent-glow: rgba(255, 107, 107, 0.38);
+      --digit-shatter-ease: cubic-bezier(0.12, 0.82, 0.18, 1);
+      --digit-suspend-ease: cubic-bezier(0.45, 0, 0.55, 1);
+      --digit-reform-ease: cubic-bezier(0.7, 0, 0.16, 1);
 
       --focus-dur: 25;
       --short-dur: 5;
@@ -107,6 +113,7 @@
     }
 
     .mode-tabs {
+      position: relative;
       display: flex;
       gap: 4px;
       background: rgba(255, 248, 240, 0.06);
@@ -115,7 +122,23 @@
       padding: 4px;
     }
 
+    .mode-tab-indicator {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 0;
+      width: 0;
+      border-radius: 12px;
+      background: var(--mode-accent);
+      box-shadow: 0 4px 16px var(--mode-accent-glow);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.28s ease, box-shadow 0.28s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .mode-tab {
+      position: relative;
+      z-index: 1;
       padding: 10px 24px;
       border-radius: 12px;
       border: none;
@@ -133,21 +156,21 @@
     .mode-tab:hover { color: var(--cream); }
 
     .mode-tab.active {
-      background: var(--coral);
       color: var(--cream);
-      box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
     }
 
     .ring-wrap {
       position: relative;
       width: 340px;
       height: 340px;
+      overflow: visible;
       animation: breathe 4s ease-in-out infinite;
     }
 
     .ring-svg {
       width: 100%;
       height: 100%;
+      overflow: visible;
       transform: rotate(-90deg);
     }
 
@@ -163,11 +186,18 @@
       stroke-width: 6;
       stroke-linecap: round;
       transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
-      filter: drop-shadow(0 0 12px rgba(255, 107, 107, 0.5));
+      filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.68)) drop-shadow(0 0 26px rgba(255, 107, 107, 0.36));
     }
 
-    .ring-fill.break { stroke: #78C48F; filter: drop-shadow(0 0 12px rgba(120, 196, 143, 0.5)); }
-    .ring-fill.long-break { stroke: #8BA4E8; filter: drop-shadow(0 0 12px rgba(139, 164, 232, 0.5)); }
+    .ring-fill.break {
+      stroke: #7CFFB2;
+      filter: drop-shadow(0 0 10px rgba(124, 255, 178, 0.72)) drop-shadow(0 0 30px rgba(124, 255, 178, 0.42));
+    }
+
+    .ring-fill.long-break {
+      stroke: #7EA9FF;
+      filter: drop-shadow(0 0 10px rgba(126, 169, 255, 0.72)) drop-shadow(0 0 30px rgba(126, 169, 255, 0.42));
+    }
 
     .timer-display {
       position: absolute;
@@ -180,12 +210,119 @@
     }
 
     .timer-time {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 68px;
       font-weight: 300;
       letter-spacing: -0.04em;
       color: var(--cream);
       font-variant-numeric: tabular-nums;
       line-height: 1;
+      min-width: 220px;
+      text-align: center;
+    }
+
+    .timer-char {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 0.66em;
+      min-height: 1em;
+      transition: filter 0.24s ease, opacity 0.24s ease, text-shadow 0.24s ease;
+    }
+
+    .timer-char-separator {
+      width: 0.34em;
+    }
+
+    .timer-time.morphing .timer-char.morphing {
+      animation: digit-morph 0.58s var(--digit-shatter-ease);
+      text-shadow: 0 0 14px rgba(255, 248, 240, 0.3);
+    }
+
+    .timer-time.simple-blur {
+      animation: timer-simple-blur 0.18s linear;
+    }
+
+    .digit-dissolve-field {
+      position: absolute;
+      width: 68px;
+      height: 82px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 3;
+      color: var(--cream);
+    }
+
+    .digit-particle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0;
+      box-shadow: 0 0 8px currentColor;
+      animation: digit-particle-morph 0.62s var(--digit-shatter-ease) forwards;
+    }
+
+    @keyframes digit-morph {
+      0% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
+        animation-timing-function: var(--digit-shatter-ease);
+      }
+      24% {
+        opacity: 0.18;
+        filter: blur(8px);
+        transform: scale(0.96);
+        animation-timing-function: var(--digit-suspend-ease);
+      }
+      64% {
+        opacity: 0.28;
+        filter: blur(5px);
+        transform: scale(1.02);
+        animation-timing-function: var(--digit-reform-ease);
+      }
+      100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes timer-simple-blur {
+      0% { opacity: 1; filter: blur(0); }
+      50% { opacity: 0.34; filter: blur(5px); }
+      100% { opacity: 1; filter: blur(0); }
+    }
+
+    @keyframes digit-particle-morph {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.4);
+        animation-timing-function: var(--digit-shatter-ease);
+      }
+      24% {
+        opacity: 0.9;
+        transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.08);
+        animation-timing-function: var(--digit-suspend-ease);
+      }
+      64% {
+        opacity: 0.64;
+        transform: translate(calc(-50% + var(--x-mid)), calc(-50% + var(--y-mid))) scale(0.86);
+        animation-timing-function: var(--digit-reform-ease);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.35);
+      }
     }
 
     .timer-label {
@@ -245,14 +382,14 @@
     }
 
     .btn-primary {
-      background: var(--coral);
+      background: var(--mode-accent);
       color: var(--cream);
-      box-shadow: 0 8px 32px rgba(255, 107, 107, 0.35);
+      box-shadow: 0 8px 32px var(--mode-accent-glow);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(255, 107, 107, 0.45);
+      box-shadow: 0 12px 40px var(--mode-accent-glow);
     }
 
     .btn-primary:active { transform: translateY(0); }
@@ -355,6 +492,134 @@
     }
 
     .settings-input:focus { border-color: var(--coral); }
+
+    .settings-stepper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stepper-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 248, 240, 0.1);
+      background: rgba(255, 248, 240, 0.05);
+      color: var(--ink-faint);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    }
+
+    .stepper-btn:hover {
+      color: var(--cream);
+      border-color: rgba(255, 248, 240, 0.22);
+      background: rgba(255, 248, 240, 0.08);
+    }
+
+    .stepper-btn:active {
+      transform: scale(0.94);
+      color: var(--coral-light);
+    }
+
+    .settings-stepper .settings-input {
+      width: 68px;
+      height: 38px;
+      padding: 8px 10px;
+      cursor: default;
+    }
+
+    .settings-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .settings-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-track {
+      position: relative;
+      width: 54px;
+      height: 30px;
+      border-radius: 100px;
+      border: 1px solid rgba(255, 248, 240, 0.1);
+      background: rgba(255, 248, 240, 0.08);
+      cursor: pointer;
+      transition: background 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--cream-dark);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), background 0.24s ease;
+    }
+
+    .settings-toggle input:checked + .toggle-track {
+      background: var(--mode-accent);
+      border-color: transparent;
+      box-shadow: 0 0 18px var(--mode-accent-glow);
+    }
+
+    .settings-toggle input:checked + .toggle-track::after {
+      transform: translateX(24px);
+      background: var(--cream);
+    }
+
+    .settings-source {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 8px;
+      color: rgba(196, 184, 173, 0.46);
+      font-size: 10px;
+      line-height: 1.5;
+      letter-spacing: 0.08em;
+    }
+
+    .settings-source-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: rgba(196, 184, 173, 0.58);
+      text-decoration: none;
+      transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    .settings-source-link:hover {
+      color: var(--cream);
+      background: rgba(255, 248, 240, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .settings-source-icon {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
 
     .settings-close {
       position: absolute;
@@ -654,9 +919,9 @@
       top: 24px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 10px;
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.25em;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
       color: var(--coral);
       opacity: 0;
@@ -698,6 +963,17 @@
       .timer-time { font-size: 54px; }
       .stats-drawer, .settings-panel { width: 100%; }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      .timer-time.morphing .timer-char.morphing,
+      .digit-particle {
+        animation: none;
+      }
+
+      .digit-dissolve-field {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -710,10 +986,11 @@
   <div class="focus-indicator" id="focusIndicator">专注中</div>
 
   <div class="timer-wrap">
-    <div class="mode-tabs">
-      <button class="mode-tab active" data-mode="focus">专注</button>
-      <button class="mode-tab" data-mode="short">短休息</button>
-      <button class="mode-tab" data-mode="long">长休息</button>
+    <div class="mode-tabs" role="tablist" aria-label="计时模式" data-current-mode="focus">
+      <div class="mode-tab-indicator" aria-hidden="true"></div>
+      <button class="mode-tab active" type="button" role="tab" aria-selected="true" data-mode="focus">专注</button>
+      <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="short">短休息</button>
+      <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="long">长休息</button>
     </div>
 
     <div class="ring-wrap">
@@ -765,31 +1042,65 @@
           <div class="settings-item-label">专注时长</div>
           <div class="settings-item-desc">分钟</div>
         </div>
-        <input type="number" class="settings-input" id="inputFocus" min="1" max="90" value="25" />
+        <div class="settings-stepper" data-setting="inputFocus">
+          <button class="stepper-btn" type="button" aria-label="减少专注时长" data-stepper="inputFocus" data-dir="-">−</button>
+          <input type="text" inputmode="numeric" readonly class="settings-input" id="inputFocus" min="1" max="90" value="25" aria-label="专注时长" />
+          <button class="stepper-btn" type="button" aria-label="增加专注时长" data-stepper="inputFocus" data-dir="+">+</button>
+        </div>
       </div>
       <div class="settings-item">
         <div>
           <div class="settings-item-label">短休息</div>
           <div class="settings-item-desc">分钟</div>
         </div>
-        <input type="number" class="settings-input" id="inputShort" min="1" max="30" value="5" />
+        <div class="settings-stepper" data-setting="inputShort">
+          <button class="stepper-btn" type="button" aria-label="减少短休息时长" data-stepper="inputShort" data-dir="-">−</button>
+          <input type="text" inputmode="numeric" readonly class="settings-input" id="inputShort" min="1" max="30" value="5" aria-label="短休息时长" />
+          <button class="stepper-btn" type="button" aria-label="增加短休息时长" data-stepper="inputShort" data-dir="+">+</button>
+        </div>
       </div>
       <div class="settings-item">
         <div>
           <div class="settings-item-label">长休息</div>
           <div class="settings-item-desc">分钟</div>
         </div>
-        <input type="number" class="settings-input" id="inputLong" min="1" max="60" value="15" />
+        <div class="settings-stepper" data-setting="inputLong">
+          <button class="stepper-btn" type="button" aria-label="减少长休息时长" data-stepper="inputLong" data-dir="-">−</button>
+          <input type="text" inputmode="numeric" readonly class="settings-input" id="inputLong" min="1" max="60" value="15" aria-label="长休息时长" />
+          <button class="stepper-btn" type="button" aria-label="增加长休息时长" data-stepper="inputLong" data-dir="+">+</button>
+        </div>
       </div>
       <div class="settings-item">
         <div>
           <div class="settings-item-label">番茄后长休息</div>
           <div class="settings-item-desc">个番茄</div>
         </div>
-        <input type="number" class="settings-input" id="inputPomodoros" min="2" max="10" value="4" />
+        <div class="settings-stepper" data-setting="inputPomodoros">
+          <button class="stepper-btn" type="button" aria-label="减少长休息间隔" data-stepper="inputPomodoros" data-dir="-">−</button>
+          <input type="text" inputmode="numeric" readonly class="settings-input" id="inputPomodoros" min="2" max="10" value="4" aria-label="番茄后长休息" />
+          <button class="stepper-btn" type="button" aria-label="增加长休息间隔" data-stepper="inputPomodoros" data-dir="+">+</button>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div class="settings-item-label">数字粒子效果</div>
+          <div class="settings-item-desc">切换数字时启用碎裂粒子</div>
+        </div>
+        <label class="settings-toggle">
+          <input type="checkbox" id="inputParticles" checked aria-label="数字粒子效果" />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
       </div>
     </div>
     <button class="reset-btn" id="resetAllStats">清除所有数据</button>
+    <div class="settings-source" aria-label="开发者来源">
+      <span>NOSOLUTIONLOVE · Awes0meE</span>
+      <a class="settings-source-link" href="https://github.com/NOSOLUTIONLOVE/08_Pomodoro" target="_blank" rel="noopener noreferrer" aria-label="打开原 GitHub 仓库" title="打开原 GitHub 仓库">
+        <svg class="settings-source-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.05 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.92-2.34 4.78-4.57 5.04.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.59.69.49A10.13 10.13 0 0 0 22 12.24C22 6.58 17.52 2 12 2z"/>
+        </svg>
+      </a>
+    </div>
   </div>
 
   <div class="stats-drawer" id="statsDrawer">
@@ -864,7 +1175,7 @@
       pomodorosToday: 0,
       dailyCurve: [],
       history: [],
-      settings: { focus: 25, short: 5, long: 15, pomodorosBeforeLong: 4 }
+      settings: { focus: 25, short: 5, long: 15, pomodorosBeforeLong: 4, particles: true }
     };
 
     let interval = null;
@@ -874,7 +1185,7 @@
         const saved = localStorage.getItem('pomodoro-state');
         if (saved) {
           const parsed = JSON.parse(saved);
-          state.settings = parsed.settings || state.settings;
+          state.settings = { ...state.settings, ...(parsed.settings || {}) };
           state.completedPomodoros = parsed.completedPomodoros || 0;
           state.pomodorosToday = parsed.pomodorosToday || 0;
           state.dailyCurve = parsed.dailyCurve || [];
@@ -923,6 +1234,44 @@
     const $statsDrawer = document.getElementById('statsDrawer');
     const $overlay = document.getElementById('overlay');
     const $toast = document.getElementById('toast');
+    const $modeTabs = document.querySelector('.mode-tabs');
+    const $modeIndicator = document.querySelector('.mode-tab-indicator');
+    const $inputParticles = document.getElementById('inputParticles');
+
+    const SETTING_CONTROLS = {
+      inputFocus: { key: 'focus', min: 1, max: 90 },
+      inputShort: { key: 'short', min: 1, max: 30 },
+      inputLong: { key: 'long', min: 1, max: 60 },
+      inputPomodoros: { key: 'pomodorosBeforeLong', min: 2, max: 10 }
+    };
+
+    const TIMER_PARTICLE_COLORS = {
+      focus: '#FFB4A2',
+      short: '#7CFFB2',
+      long: '#7EA9FF'
+    };
+
+    const MODE_THEMES = {
+      focus: {
+        accent: '#FF6B6B',
+        light: '#FFB4A2',
+        glow: 'rgba(255, 107, 107, 0.38)'
+      },
+      short: {
+        accent: '#7CFFB2',
+        light: '#C4FFD9',
+        glow: 'rgba(124, 255, 178, 0.38)'
+      },
+      long: {
+        accent: '#7EA9FF',
+        light: '#C7D8FF',
+        glow: 'rgba(126, 169, 255, 0.38)'
+      }
+    };
+
+    let stepperHold = null;
+    let timerTextTransition = null;
+    let currentTimerText = '';
 
     function createParticles() {
       const container = document.getElementById('particles');
@@ -938,10 +1287,156 @@
       }
     }
 
-    function updateDisplay() {
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function applyModeTheme(mode) {
+      const theme = MODE_THEMES[mode] || MODE_THEMES.focus;
+      document.documentElement.style.setProperty('--mode-accent', theme.accent);
+      document.documentElement.style.setProperty('--mode-accent-light', theme.light);
+      document.documentElement.style.setProperty('--mode-accent-glow', theme.glow);
+    }
+
+    function renderTimerChars(text, morphIndices = []) {
+      const chars = Array.from(text);
+      $display.innerHTML = '';
+      chars.forEach((char, index) => {
+        const span = document.createElement('span');
+        span.className = 'timer-char' + (char === ':' ? ' timer-char-separator' : '');
+        if (morphIndices.includes(index)) span.classList.add('morphing');
+        span.dataset.charIndex = index;
+        span.textContent = char;
+        $display.appendChild(span);
+      });
+      currentTimerText = text;
+    }
+
+    function clearDigitDissolveFields() {
+      document.querySelectorAll('.digit-dissolve-field').forEach(field => field.remove());
+    }
+
+    function createDigitDissolveParticles(charEl, index) {
+      const containerRect = $display.parentElement.getBoundingClientRect();
+      const charRect = charEl.getBoundingClientRect();
+      const particleCount = Math.floor(randomBetween(28, 37));
+      const field = document.createElement('div');
+      field.className = 'digit-dissolve-field';
+      field.dataset.charIndex = index;
+      field.style.left = (charRect.left + charRect.width / 2 - containerRect.left) + 'px';
+      field.style.top = (charRect.top + charRect.height / 2 - containerRect.top) + 'px';
+      field.style.color = TIMER_PARTICLE_COLORS[state.mode] || TIMER_PARTICLE_COLORS.focus;
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('span');
+        const angle = randomBetween(0, Math.PI * 2);
+        const distance = randomBetween(10, 34);
+        const squash = randomBetween(0.72, 1.22);
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance * squash;
+        const size = randomBetween(2, 5);
+        particle.className = 'digit-particle';
+        particle.style.width = size.toFixed(1) + 'px';
+        particle.style.height = size.toFixed(1) + 'px';
+        particle.style.opacity = randomBetween(0.55, 0.95).toFixed(2);
+        particle.style.setProperty('--x', x.toFixed(1) + 'px');
+        particle.style.setProperty('--y', y.toFixed(1) + 'px');
+        particle.style.setProperty('--x-mid', (x * randomBetween(0.42, 0.78)).toFixed(1) + 'px');
+        particle.style.setProperty('--y-mid', (y * randomBetween(0.42, 0.78)).toFixed(1) + 'px');
+        particle.style.animationDelay = randomBetween(0, 90).toFixed(0) + 'ms';
+        field.appendChild(particle);
+      }
+
+      $display.parentElement.appendChild(field);
+      setTimeout(() => field.remove(), 680);
+    }
+
+    function setTimerText(nextText, animate = false) {
+      const oldText = currentTimerText || $display.textContent;
+      if (oldText === nextText && !animate) return;
+
+      if (timerTextTransition) {
+        clearTimeout(timerTextTransition.swap);
+        clearTimeout(timerTextTransition.done);
+      }
+
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!animate || reduceMotion) {
+        renderTimerChars(nextText);
+        $display.classList.remove('morphing');
+        $display.classList.remove('simple-blur');
+        clearDigitDissolveFields();
+        timerTextTransition = null;
+        return;
+      }
+
+      if (state.settings.particles === false) {
+        clearDigitDissolveFields();
+        $display.classList.remove('morphing');
+        $display.querySelectorAll('.timer-char.morphing').forEach(char => char.classList.remove('morphing'));
+        $display.classList.remove('simple-blur');
+        void $display.offsetWidth;
+        $display.classList.add('simple-blur');
+        timerTextTransition = {
+          swap: setTimeout(() => {
+            renderTimerChars(nextText);
+          }, 90),
+          done: setTimeout(() => {
+            $display.classList.remove('simple-blur');
+            timerTextTransition = null;
+          }, 210)
+        };
+        return;
+      }
+
+      if (!$display.querySelector('.timer-char')) {
+        renderTimerChars(oldText);
+      }
+
+      const changedIndices = Array.from(nextText).reduce((indices, char, index) => {
+        if (char !== oldText[index]) indices.push(index);
+        return indices;
+      }, []);
+
+      if (changedIndices.length === 0) {
+        renderTimerChars(nextText);
+        return;
+      }
+
+      clearDigitDissolveFields();
+      $display.classList.add('morphing');
+      changedIndices.forEach(index => {
+        const charEl = $display.querySelector('[data-char-index="' + index + '"]');
+        if (!charEl) return;
+        charEl.classList.add('morphing');
+        if (state.settings.particles) {
+          createDigitDissolveParticles(charEl, index);
+        }
+      });
+
+      timerTextTransition = {
+        swap: setTimeout(() => {
+          renderTimerChars(nextText, changedIndices);
+        }, 170),
+        done: setTimeout(() => {
+          $display.classList.remove('morphing');
+          $display.querySelectorAll('.timer-char.morphing').forEach(char => char.classList.remove('morphing'));
+          clearDigitDissolveFields();
+          timerTextTransition = null;
+        }, 620)
+      };
+    }
+
+    function updateDisplay(animateTimer = false) {
       const m = Math.floor(state.timeLeft / 60);
       const s = state.timeLeft % 60;
-      $display.textContent = m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+      setTimerText(formatTime(state.timeLeft), animateTimer);
       const progress = state.timeLeft / state.totalTime;
       const offset = CIRCUMFERENCE * (1 - progress);
       $ringFill.style.strokeDashoffset = offset;
@@ -956,7 +1451,36 @@
       } else {
         $bgGradient.className = 'bg-gradient long-break';
       }
-      $ringFill.className = 'ring-fill' + (state.mode === 'short' ? ' break' : state.mode === 'long' ? ' long-break' : '');
+      $ringFill.setAttribute('class', 'ring-fill' + (state.mode === 'short' ? ' break' : state.mode === 'long' ? ' long-break' : ''));
+    }
+
+    function positionModeIndicator() {
+      const activeTab = $modeTabs.querySelector('.mode-tab.active');
+      if (!activeTab || !$modeIndicator) return;
+      $modeIndicator.style.width = activeTab.offsetWidth + 'px';
+      $modeIndicator.style.transform = 'translateX(' + activeTab.offsetLeft + 'px)';
+    }
+
+    function updateModeTabs(mode) {
+      applyModeTheme(mode);
+      $modeTabs.dataset.currentMode = mode;
+      document.querySelectorAll('.mode-tab').forEach(tab => {
+        const active = tab.dataset.mode === mode;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        tab.tabIndex = active ? 0 : -1;
+      });
+      positionModeIndicator();
+    }
+
+    function hasTimerProgress() {
+      return state.running || state.timeLeft !== state.totalTime;
+    }
+
+    function requestModeChange(mode) {
+      if (mode === state.mode) return;
+      if (hasTimerProgress() && !confirm('切换模式会重置当前计时，确定继续吗？')) return;
+      setMode(mode);
     }
 
     function setMode(mode) {
@@ -967,7 +1491,7 @@
       const durations = { focus: state.settings.focus, short: state.settings.short, long: state.settings.long };
       state.totalTime = durations[mode] * 60;
       state.timeLeft = state.totalTime;
-      document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      updateModeTabs(mode);
       $btnStart.textContent = '开始';
       $btnReset.style.display = 'none';
       const labels = { focus: '专注时间', short: '短休息', long: '长休息' };
@@ -975,8 +1499,108 @@
       const indicatorLabels = { focus: '专注中', short: '短休息', long: '长休息' };
       $focusIndicator.textContent = indicatorLabels[mode];
       $focusIndicator.className = 'focus-indicator' + (mode === 'short' ? ' break' : mode === 'long' ? ' long-break' : '');
-      updateDisplay();
+      updateDisplay(true);
       saveState();
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function syncSettingsInputs() {
+      Object.entries(SETTING_CONTROLS).forEach(([id, config]) => {
+        const input = document.getElementById(id);
+        input.value = state.settings[config.key];
+      });
+      $inputParticles.checked = state.settings.particles !== false;
+    }
+
+    function applySettingValue(id, value) {
+      const config = SETTING_CONTROLS[id];
+      const input = document.getElementById(id);
+      const previousTotalTime = state.totalTime;
+      const previousTimeLeft = state.timeLeft;
+      const next = clamp(parseInt(value, 10) || config.min, config.min, config.max);
+      input.value = next;
+      state.settings[config.key] = next;
+
+      const modeForSetting = { inputFocus: 'focus', inputShort: 'short', inputLong: 'long' }[id];
+      if (modeForSetting === state.mode) {
+        const elapsed = Math.max(0, previousTotalTime - previousTimeLeft);
+        state.totalTime = state.settings[state.mode] * 60;
+        state.timeLeft = Math.max(0, state.totalTime - elapsed);
+        updateDisplay(true);
+      }
+
+      updatePomodoroDots();
+      saveState();
+    }
+
+    function stepSetting(id, direction) {
+      const input = document.getElementById(id);
+      const delta = direction === '+' ? 1 : -1;
+      applySettingValue(id, parseInt(input.value, 10) + delta);
+    }
+
+    function stopStepperHold() {
+      if (!stepperHold) return;
+      clearTimeout(stepperHold.timer);
+      stepperHold = null;
+    }
+
+    function startStepperHold(button, id, direction, pointerId) {
+      stopStepperHold();
+      button.dataset.pointerStepped = 'true';
+      stepSetting(id, direction);
+
+      let repeatCount = 0;
+      const repeat = () => {
+        if (!stepperHold) return;
+        repeatCount++;
+        stepSetting(id, direction);
+        const delay = Math.max(45, 360 * Math.pow(0.78, repeatCount));
+        stepperHold.timer = setTimeout(repeat, delay);
+      };
+
+      stepperHold = { timer: setTimeout(repeat, 360) };
+      if (button.setPointerCapture && pointerId != null) {
+        button.setPointerCapture(pointerId);
+      }
+    }
+
+    function setupStepperControls() {
+      document.querySelectorAll('.stepper-btn').forEach(button => {
+        const id = button.dataset.stepper;
+        const direction = button.dataset.dir;
+
+        button.addEventListener('pointerdown', e => {
+          if (e.button != null && e.button !== 0) return;
+          e.preventDefault();
+          startStepperHold(button, id, direction, e.pointerId);
+        });
+
+        button.addEventListener('click', () => {
+          if (button.dataset.pointerStepped === 'true') {
+            button.dataset.pointerStepped = '';
+            return;
+          }
+          stepSetting(id, direction);
+        });
+
+        button.addEventListener('keydown', e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          stepSetting(id, direction);
+        });
+
+        button.addEventListener('pointerup', stopStepperHold);
+        button.addEventListener('pointercancel', stopStepperHold);
+        button.addEventListener('pointerleave', stopStepperHold);
+        button.addEventListener('blur', stopStepperHold);
+        button.addEventListener('contextmenu', e => e.preventDefault());
+      });
+
+      window.addEventListener('pointerup', stopStepperHold);
     }
 
     function start() {
@@ -1010,7 +1634,7 @@
       $btnStart.textContent = '开始';
       $btnReset.style.display = 'none';
       $focusIndicator.classList.remove('active');
-      updateDisplay();
+      updateDisplay(true);
     }
 
     function onTimerComplete() {
@@ -1179,7 +1803,7 @@
     }
 
     document.querySelectorAll('.mode-tab').forEach(tab => {
-      tab.addEventListener('click', () => setMode(tab.dataset.mode));
+      tab.addEventListener('click', () => requestModeChange(tab.dataset.mode));
     });
 
     $btnStart.addEventListener('click', start);
@@ -1206,19 +1830,15 @@
     document.getElementById('statsClose').addEventListener('click', closePanels);
     $overlay.addEventListener('click', closePanels);
 
-    ['inputFocus', 'inputShort', 'inputLong', 'inputPomodoros'].forEach(id => {
+    Object.keys(SETTING_CONTROLS).forEach(id => {
       document.getElementById(id).addEventListener('change', function() {
-        state.settings.focus = parseInt(document.getElementById('inputFocus').value) || 25;
-        state.settings.short = parseInt(document.getElementById('inputShort').value) || 5;
-        state.settings.long = parseInt(document.getElementById('inputLong').value) || 15;
-        state.settings.pomodorosBeforeLong = parseInt(document.getElementById('inputPomodoros').value) || 4;
-        if (!state.running) {
-          state.totalTime = { focus: state.settings.focus, short: state.settings.short, long: state.settings.long }[state.mode] * 60;
-          state.timeLeft = state.totalTime;
-          updateDisplay();
-        }
-        saveState();
+        applySettingValue(id, this.value);
       });
+    });
+
+    $inputParticles.addEventListener('change', function() {
+      state.settings.particles = this.checked;
+      saveState();
     });
 
     document.getElementById('resetAllStats').addEventListener('click', () => {
@@ -1247,11 +1867,16 @@
     });
 
     loadState();
+    syncSettingsInputs();
+    setupStepperControls();
     createParticles();
     state.timeLeft = state.settings.focus * 60;
     state.totalTime = state.settings.focus * 60;
+    applyModeTheme(state.mode);
     updateDisplay();
     updatePomodoroDots();
+    updateModeTabs(state.mode);
+    window.addEventListener('resize', positionModeIndicator);
     $ringFill.style.strokeDasharray = CIRCUMFERENCE;
     $ringFill.style.strokeDashoffset = CIRCUMFERENCE;
   </script>
